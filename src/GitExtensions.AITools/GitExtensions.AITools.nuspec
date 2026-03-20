@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <authors>$author$</authors>
+    <description>$description$</description>
+    <projectUrl>$projectUrl$</projectUrl>
+    <tags>$tags$</tags>
+    <copyright>$copyright$</copyright>
+    <releaseNotes>$releaseNotes$</releaseNotes>
+    <icon>icon-128x128.png</icon>
+    <license type="expression">MIT</license>
+    <repository type="$repositoryType$" url="$repositoryUrl$" commit="$repositoryCommit$" />
+    <readme>docs/README.md</readme>
+    <dependencies>
+      <dependency id="GitExtensions.Extensibility" version="$geDependencyRange$" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="$targetDir$$id$.dll" target="/lib" />
+    <file src="$targetDir$$id$.pdb" target="/lib" />
+    <file src="$targetDir$Translation\*.xlf" target="/lib/Translation" />
+    <file src="..\..\assets\icon-128x128.png" target="/" />
+    <file src="..\..\NUGET_README.md" target="/docs/README.md" />
+  </files>
+
+</package>

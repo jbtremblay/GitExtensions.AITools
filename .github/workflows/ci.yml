@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'ge*']
+    tags: ['v*']
+  pull_request:
+    branches: [main, develop, 'ge*']
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Determine version suffix
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$proj = Get-Content src/GitExtensions.AITools/GitExtensions.AITools.csproj
+          $prefix = $proj.Project.PropertyGroup[0].VersionPrefix
+          echo "prefix=$prefix" >> $env:GITHUB_OUTPUT
+          if ($env:GITHUB_REF -match '^refs/tags/v') {
+            echo "suffix=" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "suffix=ci.${{ github.run_number }}" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Extract release notes
+        id: notes
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.prefix }}'
+          $changelog = Get-Content CHANGELOG.md -Raw
+          # For tag builds, find the [x.y.z] section; otherwise use [Unreleased]
+          $heading = if ($env:GITHUB_REF -match '^refs/tags/v') { $version } else { 'Unreleased' }
+          if ($changelog -match "(?ms)^## \[$heading\].*?\n(.*?)(?=\n## \[|$)") {
+            $notes = $Matches[1].Trim()
+          } else {
+            $notes = 'See https://github.com/JBTremblay/gitextensions.aitools/releases'
+          }
+          # Escape for MSBuild property
+          $notes = $notes -replace '%','%25' -replace ';','%3B'
+          echo "notes=$notes" >> $env:GITHUB_OUTPUT
+
+      - name: Build
+        run: dotnet build -c Release -p:VersionSuffix=${{ steps.version.outputs.suffix }}
+
+      - name: Pack
+        run: >-
+          dotnet pack -c Release
+          -p:VersionSuffix=${{ steps.version.outputs.suffix }}
+          -p:PackageReleaseNotes="${{ steps.notes.outputs.notes }}"
+          --no-build
+
+      - name: Validate package contents
+        shell: pwsh
+        run: |
+          $nupkg = Get-ChildItem src/GitExtensions.AITools/bin/Release/*.nupkg | Select-Object -First 1
+          Write-Host "Package: $($nupkg.Name)"
+          $entries = [System.IO.Compression.ZipFile]::OpenRead($nupkg.FullName).Entries | Select-Object -ExpandProperty FullName
+          $entries | ForEach-Object { Write-Host "  $_" }
+          $required = @('GitExtensions.AITools.dll', 'icon-128x128.png', 'README.md')
+          foreach ($file in $required) {
+            if (-not ($entries | Where-Object { $_ -like "*$file" })) {
+              Write-Error "Missing required file: $file"
+              exit 1
+            }
+          }
+          Write-Host "Package validation passed."
+
+      - name: Upload NuGet package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: src/GitExtensions.AITools/bin/Release/*.nupkg
+
+  publish:
+    runs-on: windows-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download NuGet package
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkg
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Push to NuGet
+        run: dotnet nuget push *.nupkg -k ${{ secrets.NUGET_PUSH_TOKEN }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF -replace '^refs/tags/'
+          $version = $tag -replace '^v'
+          $changelog = Get-Content CHANGELOG.md -Raw
+          if ($changelog -match "(?ms)^## \[$version\].*?\n(.*?)(?=\n## \[|$)") {
+            $Matches[1].Trim() | Set-Content release-notes.md
+          } else {
+            "Release $tag" | Set-Content release-notes.md
+          }
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes-file release-notes.md

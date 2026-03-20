@@ -1,0 +1,26 @@
+<?xml version="1.0" ?><xliff xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="1.0" GitExVersion="">
+  <file datatype="plaintext" original="AiCommitMessagePlugin" source-language="en" target-language="fr">
+    <body>
+      <trans-unit id="_triggerText.Text">
+        <source>AI: Generate commit message...</source>
+        <target>IA : Générer un message de commit...</target>
+      </trans-unit>
+      <trans-unit id="_noApiKeyMessage.Text">
+        <source>[AI Tools: No API key configured. Open Plugins &gt; AI Tools to configure.]</source>
+        <target>[AI Tools : Aucune clé API configurée. Ouvrez Extensions &gt; AI Tools pour configurer.]</target>
+      </trans-unit>
+      <trans-unit id="_generatingMessage.Text">
+        <source>Generating AI commit message...</source>
+        <target>Génération du message de commit par IA...</target>
+      </trans-unit>
+      <trans-unit id="_cancelledMessage.Text">
+        <source>[AI Commit Message: Generation was cancelled.]</source>
+        <target>[Message de commit IA : La génération a été annulée.]</target>
+      </trans-unit>
+      <trans-unit id="_errorMessage.Text">
+        <source>[AI Commit Message Error: {0}]</source>
+        <target>[Erreur de message de commit IA : {0}]</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -1,0 +1,138 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <LangVersion>13.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
+    <VersionPrefix>6.0.0</VersionPrefix>
+    <VersionSuffix>local</VersionSuffix>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RepositoryUrl>https://github.com/JBTremblay/gitextensions.aitools</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Translation\*.xlf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Git Extensions path resolution. Override in .csproj.user -->
+  <PropertyGroup>
+    <GitExtensionsDownloadPath Condition="$(GitExtensionsDownloadPath) == ''">..\..\gitextensions.shared</GitExtensionsDownloadPath>
+    <_PluginMajorVersion>$(VersionPrefix.Split('.')[0])</_PluginMajorVersion>
+    <_NextMajorVersion>$([MSBuild]::Add($(_PluginMajorVersion), 1))</_NextMajorVersion>
+    <GitExtensionsExpectedMajorVersion>$(_PluginMajorVersion)</GitExtensionsExpectedMajorVersion>
+    <GitExtensionsReferenceVersion Condition="$(GitExtensionsReferenceVersion) == ''">latest</GitExtensionsReferenceVersion>
+    <GitExtensionsReferenceSource Condition="$(GitExtensionsReferenceSource) == ''">GitHub</GitExtensionsReferenceSource>
+    <GitExtensionsPath Condition="$(GitExtensionsPath) == ''">$([System.IO.Path]::GetFullPath('$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(GitExtensionsDownloadPath)'))'))</GitExtensionsPath>
+    <GitExtensionsPluginsPath>$([System.IO.Path]::Combine('$(GitExtensionsPath)', 'UserPlugins'))</GitExtensionsPluginsPath>
+    <GitExtensionsExecutablePath>$([System.IO.Path]::Combine('$(GitExtensionsPath)', 'GitExtensions.exe'))</GitExtensionsExecutablePath>
+    <_GitExtensionsDownloadScriptPath>$([System.IO.Path]::GetFullPath('$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '..\..\tools\Download-GitExtensions.ps1'))'))</_GitExtensionsDownloadScriptPath>
+  </PropertyGroup>
+
+  <!-- Reference to GitExtensions dlls (resolved from downloaded or local GE installation) -->
+  <ItemGroup>
+    <Reference Include="GitExtensions.Extensibility">
+      <HintPath>$(GitExtensionsPath)\GitExtensions.Extensibility.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="GitUIPluginInterfaces">
+      <HintPath>$(GitExtensionsPath)\GitUIPluginInterfaces.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="GitCommands">
+      <HintPath>$(GitExtensionsPath)\GitCommands.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ResourceManager">
+      <HintPath>$(GitExtensionsPath)\ResourceManager.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.ComponentModel.Composition">
+      <HintPath>$(GitExtensionsPath)\System.ComponentModel.Composition.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- PreBuild: download Git Extensions portable if not present -->
+  <Target Name="DownloadGitExtensions" BeforeTargets="$(BuildDependsOn)">
+    <MakeDir Directories="$(GitExtensionsPath)" />
+    <Error Condition="!Exists('$(GitExtensionsExecutablePath)') And !Exists('$(_GitExtensionsDownloadScriptPath)')" Text="Path to Git Extensions download script is wrong. Current value '$(_GitExtensionsDownloadScriptPath)'." />
+    <Exec Condition="!Exists('$(GitExtensionsExecutablePath)')" Command="powershell.exe -ExecutionPolicy Unrestricted &quot;$(_GitExtensionsDownloadScriptPath)&quot; -ExtractRootPath &quot;$(GitExtensionsPath)&quot; -Version $(GitExtensionsReferenceVersion) -Source $(GitExtensionsReferenceSource) -ExpectedMajorVersion $(GitExtensionsExpectedMajorVersion)" />
+  </Target>
+
+  <!-- Validate that referenced GE binaries match the expected major version -->
+  <Target Name="ValidateGitExtensionsVersion" AfterTargets="DownloadGitExtensions" BeforeTargets="ResolveAssemblyReferences">
+    <GetAssemblyIdentity AssemblyFiles="$(GitExtensionsPath)\GitExtensions.Extensibility.dll">
+      <Output TaskParameter="Assemblies" ItemName="_GEAssemblyInfo" />
+    </GetAssemblyIdentity>
+    <PropertyGroup>
+      <_GEVersion>%(_GEAssemblyInfo.Version)</_GEVersion>
+      <_GEMajor>$(_GEVersion.Split('.')[0])</_GEMajor>
+    </PropertyGroup>
+    <Error
+      Condition="'$(_GEMajor)' != '$(GitExtensionsExpectedMajorVersion)'"
+      Text="Git Extensions version mismatch: found v$(_GEVersion) but plugin targets major version $(GitExtensionsExpectedMajorVersion). Update GitExtensionsReferenceVersion in .csproj.user or bump GitExtensionsExpectedMajorVersion." />
+    <Message Importance="normal" Text="Git Extensions version check passed: v$(_GEVersion)" />
+  </Target>
+
+  <!-- PostBuild: copy plugin DLL + translations to Git Extensions UserPlugins for testing -->
+  <Target Name="CopyPluginToGitExtensions" AfterTargets="PostBuildEvent">
+    <MakeDir Directories="$(GitExtensionsPluginsPath)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$([System.IO.Path]::Combine('$(GitExtensionsPluginsPath)', '$(ProjectName)'))" />
+    <ItemGroup>
+      <_TranslationFiles Include="$(TargetDir)Translation\*.xlf" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_TranslationFiles)" DestinationFolder="$([System.IO.Path]::Combine('$(GitExtensionsPluginsPath)', '$(ProjectName)', 'Translation'))" />
+  </Target>
+
+  <!-- Pack as .nupkg with dependency on GitExtensions.Extensibility -->
+  <PropertyGroup>
+    <NuspecFile>$(MSBuildThisFileDirectory)$(MSBuildProjectName).nuspec</NuspecFile>
+    <Authors>JBTremblay</Authors>
+    <Company>JBTremblay</Company>
+    <Description>AI tools plugin for Git Extensions. Uses LLMs (Anthropic Claude, OpenAI, GitHub Copilot, Claude Code, OpenCode) to generate conventional commit messages from staged changes, with more AI features planned.</Description>
+    <PackageProjectUrl>https://github.com/JBTremblay/gitextensions.aitools</PackageProjectUrl>
+    <Copyright>© 2026 JBTremblay</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>GitExtensions;AI;commit-message;LLM;plugin</PackageTags>
+    <PackageReleaseNotes Condition="'$(PackageReleaseNotes)' == ''">See https://github.com/JBTremblay/gitextensions.aitools/releases</PackageReleaseNotes>
+  </PropertyGroup>
+  <Target Name="SetPackageProperties" BeforeTargets="GenerateNuspec">
+    <PropertyGroup>
+      <NuspecProperties>
+        id=$(PackageId);
+        version=$(PackageVersion);
+        configuration=$(Configuration);
+        tags=$(PackageTags.Replace(';',' '));
+        projectUrl=$(PackageProjectUrl);
+        iconUrl=$(PackageIconUrl);
+        repositoryUrl=$(RepositoryUrl);
+        repositoryType=$(RepositoryType);
+        repositoryCommit=$(RepositoryCommit);
+        author=$(Authors);
+        copyright=$(Copyright);
+        description=$(Description);
+        releaseNotes=$(PackageReleaseNotes);
+        targetDir=$(TargetDir);
+        geDependencyRange=[$(_PluginMajorVersion).0.0, $(_NextMajorVersion).0.0);
+      </NuspecProperties>
+    </PropertyGroup>
+  </Target>
+
+</Project>
