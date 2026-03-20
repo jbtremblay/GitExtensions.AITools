@@ -22,7 +22,7 @@
     <file src="$targetDir$$id$.pdb" target="/lib" />
     <file src="$targetDir$Translation\*.xlf" target="/lib/Translation" />
     <file src="..\..\assets\icon-128x128.png" target="/" />
-    <file src="..\..\README.md" target="/docs/" />
+    <file src="..\..\NUGET_README.md" target="/docs/README.md" />
   </files>
 
 </package>

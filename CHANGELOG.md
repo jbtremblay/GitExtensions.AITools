@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [6.0.0]
+
 ### Added
 
 - Initial release: AI commit message generation for Git Extensions 6.x
