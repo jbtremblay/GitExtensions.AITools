@@ -36,6 +36,10 @@
     <GitExtensionsDownloadPath Condition="$(GitExtensionsDownloadPath) == ''">..\..\gitextensions.shared</GitExtensionsDownloadPath>
     <_PluginMajorVersion>$(VersionPrefix.Split('.')[0])</_PluginMajorVersion>
     <_NextMajorVersion>$([MSBuild]::Add($(_PluginMajorVersion), 1))</_NextMajorVersion>
+    <GitExtensionsExtensibilityVersion>0.4.0</GitExtensionsExtensibilityVersion>
+    <_ExtMajor>$(GitExtensionsExtensibilityVersion.Split('.')[0])</_ExtMajor>
+    <_ExtMinor>$(GitExtensionsExtensibilityVersion.Split('.')[1])</_ExtMinor>
+    <_ExtNextMinor>$([MSBuild]::Add($(_ExtMinor), 1))</_ExtNextMinor>
     <GitExtensionsExpectedMajorVersion>$(_PluginMajorVersion)</GitExtensionsExpectedMajorVersion>
     <GitExtensionsReferenceVersion Condition="$(GitExtensionsReferenceVersion) == ''">latest</GitExtensionsReferenceVersion>
     <GitExtensionsReferenceSource Condition="$(GitExtensionsReferenceSource) == ''">GitHub</GitExtensionsReferenceSource>
@@ -130,7 +134,7 @@
         description=$(Description);
         releaseNotes=$(PackageReleaseNotes);
         targetDir=$(TargetDir);
-        geDependencyRange=[$(_PluginMajorVersion).0.0, $(_NextMajorVersion).0.0);
+        geDependencyRange=[$(_ExtMajor).$(_ExtMinor).0, $(_ExtMajor).$(_ExtNextMinor).0);
       </NuspecProperties>
     </PropertyGroup>
   </Target>
