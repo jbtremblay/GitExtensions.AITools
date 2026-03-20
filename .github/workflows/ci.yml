@@ -17,27 +17,29 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Determine version suffix
+      - name: Determine version
         id: version
         shell: pwsh
         run: |
-          [xml]$proj = Get-Content src/GitExtensions.AITools/GitExtensions.AITools.csproj
-          $prefix = $proj.Project.PropertyGroup[0].VersionPrefix
-          echo "prefix=$prefix" >> $env:GITHUB_OUTPUT
-          if ($env:GITHUB_REF -match '^refs/tags/v') {
-            echo "suffix=" >> $env:GITHUB_OUTPUT
+          if ($env:GITHUB_REF -match '^refs/tags/v(.+)$') {
+            $ver = $Matches[1]
+            echo "package_version=$ver" >> $env:GITHUB_OUTPUT
+            echo "version_args=-p:Version=$ver" >> $env:GITHUB_OUTPUT
           } else {
-            echo "suffix=ci.${{ github.run_number }}" >> $env:GITHUB_OUTPUT
+            [xml]$proj = Get-Content src/GitExtensions.AITools/GitExtensions.AITools.csproj
+            $prefix = $proj.Project.PropertyGroup[0].VersionPrefix
+            $suffix = "ci.${{ github.run_number }}"
+            echo "package_version=$prefix-$suffix" >> $env:GITHUB_OUTPUT
+            echo "version_args=-p:VersionSuffix=$suffix" >> $env:GITHUB_OUTPUT
           }
 
       - name: Extract release notes
         id: notes
         shell: pwsh
         run: |
-          $version = '${{ steps.version.outputs.prefix }}'
           $changelog = Get-Content CHANGELOG.md -Raw
-          # For tag builds, find the [x.y.z] section; otherwise use [Unreleased]
-          $heading = if ($env:GITHUB_REF -match '^refs/tags/v') { $version } else { 'Unreleased' }
+          # For tag builds, find the [version] section; otherwise use [Unreleased]
+          $heading = if ($env:GITHUB_REF -match '^refs/tags/v') { '${{ steps.version.outputs.package_version }}' } else { 'Unreleased' }
           if ($changelog -match "(?ms)^## \[$heading\].*?\n(.*?)(?=\n## \[|$)") {
             $notes = $Matches[1].Trim()
           } else {
@@ -48,12 +50,12 @@ jobs:
           echo "notes=$notes" >> $env:GITHUB_OUTPUT
 
       - name: Build
-        run: dotnet build -c Release -p:VersionSuffix=${{ steps.version.outputs.suffix }}
+        run: dotnet build -c Release ${{ steps.version.outputs.version_args }}
 
       - name: Pack
         run: >-
           dotnet pack -c Release
-          -p:VersionSuffix=${{ steps.version.outputs.suffix }}
+          ${{ steps.version.outputs.version_args }}
           -p:PackageReleaseNotes="${{ steps.notes.outputs.notes }}"
           --no-build
 

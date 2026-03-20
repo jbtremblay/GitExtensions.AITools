@@ -6,7 +6,7 @@
 - [ ] Rename `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD` in `CHANGELOG.md`
 - [ ] Add a fresh `## [Unreleased]` section above the new entry
 - [ ] Verify the changelog entry covers all user-facing changes
-- [ ] Ensure the nuspec `dependency` version range matches the targeted GE version
+- [ ] Verify `GitExtensionsExtensibilityVersion` in the csproj matches the targeted `GitExtensions.Extensibility` NuGet package version (the dependency range `[x.y.0, x.z.0)` is computed automatically)
 - [ ] `dotnet build -c Release` — no errors
 - [ ] `dotnet pack -c Release` — inspect .nupkg contents look correct
 - [ ] Commit: "release: vX.Y.Z"
