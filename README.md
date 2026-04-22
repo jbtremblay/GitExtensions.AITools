@@ -20,11 +20,11 @@
 - **Auto-fill mode** — automatically writes the commit message as you stage/unstage files
 - **Commit template** — also available as a selectable template in the commit dialog dropdown
 - **Multiple LLM providers:**
-  - Anthropic (Claude)
-  - OpenAI
-  - GitHub Copilot
+  - GitHub Copilot CLI
   - Claude Code
   - OpenCode
+  - Anthropic (Claude)
+  - OpenAI
 
 ## Installation
 

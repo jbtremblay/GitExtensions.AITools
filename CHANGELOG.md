@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [6.0.2] 2026-04-22
+
+### Fixed
+
+- GitHub Copilot provider now detects `copilot.cmd` on Windows (npm-installed Copilot CLI) ([#3](https://github.com/jbtremblay/GitExtensions.AITools/issues/3))
+- Updated Copilot CLI install link in the "not found" error message
+
 ## [6.0.1] 2026-03-20
 
 ### Fixed
