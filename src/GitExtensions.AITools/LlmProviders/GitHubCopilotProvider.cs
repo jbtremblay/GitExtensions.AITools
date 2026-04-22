@@ -8,9 +8,9 @@ internal sealed class GitHubCopilotProvider : CliProviderBase
 
     public override string Name => "GitHub Copilot";
 
-    protected override string[] CliCandidates => ["copilot"];
+    protected override string[] CliCandidates => ["copilot", "copilot.cmd"];
     protected override string CliNotFoundMessage =>
-        "Copilot CLI not found on PATH. Install it from https://docs.github.com/en/copilot/github-copilot-in-the-cli and ensure 'copilot' is available in your terminal.";
+        "Copilot CLI not found on PATH. Install it from https://github.com/features/copilot/cli and ensure 'copilot' is available in your terminal.";
 
     public GitHubCopilotProvider(string? model = null)
     {

@@ -10,7 +10,7 @@ AI-powered commit message generation for [Git Extensions](https://github.com/git
 - **Multiple LLM providers:**
   - Anthropic (Claude)
   - OpenAI
-  - 
+  - Github Copilot
   - Claude Code
   - OpenCode
 

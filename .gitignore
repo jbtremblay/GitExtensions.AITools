@@ -336,3 +336,5 @@ GitExtensions.settings.backup
 
 # Downloaded Git Extensions binaries (used for build/test)
 gitextensions.shared/
+
+.claude/
