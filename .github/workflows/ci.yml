@@ -40,7 +40,9 @@ jobs:
           $changelog = Get-Content CHANGELOG.md -Raw
           # For tag builds, find the [version] section; otherwise use [Unreleased]
           $heading = if ($env:GITHUB_REF -match '^refs/tags/v') { '${{ steps.version.outputs.package_version }}' } else { 'Unreleased' }
-          if ($changelog -match "(?ms)^## \[$heading\].*?\n(.*?)(?=\n## \[|$)") {
+          # Use \z (end-of-string) not $ — with (?m), $ matches every line end and
+          # causes (.*?) to capture an empty string at the blank line after the heading.
+          if ($changelog -match "(?ms)^## \[$heading\].*?\n(.*?)(?=\n## \[|\z)") {
             $notes = $Matches[1].Trim()
           } else {
             $notes = 'See https://github.com/JBTremblay/gitextensions.aitools/releases'
@@ -109,7 +111,7 @@ jobs:
           $tag = $env:GITHUB_REF -replace '^refs/tags/'
           $version = $tag -replace '^v'
           $changelog = Get-Content CHANGELOG.md -Raw
-          if ($changelog -match "(?ms)^## \[$version\].*?\n(.*?)(?=\n## \[|$)") {
+          if ($changelog -match "(?ms)^## \[$version\].*?\n(.*?)(?=\n## \[|\z)") {
             $Matches[1].Trim() | Set-Content release-notes.md
           } else {
             "Release $tag" | Set-Content release-notes.md
