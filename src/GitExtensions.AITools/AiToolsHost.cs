@@ -17,12 +17,14 @@ internal sealed class AiToolsHost
     public required BoolSetting EnabledSetting { get; init; }
     public required ChoiceSetting ProviderSetting { get; init; }
     public required PasswordSetting ApiKeySetting { get; init; }
+    public required StringSetting BaseUrlSetting { get; init; }
     public required StringSetting ModelSetting { get; init; }
 
     public ILlmProvider? CreateProvider(out string? configError)
     {
-        string provider = ProviderSetting.ValueOrDefault(Settings) ?? LlmProviderFactory.Anthropic;
+        string provider = ProviderSetting.ValueOrDefault(Settings) ?? LlmProviderFactory.GitHubCopilot;
         string apiKey = ApiKeySetting.ValueOrDefault(Settings) ?? "";
+        string baseUrl = BaseUrlSetting.ValueOrDefault(Settings) ?? "";
         string model = ModelSetting.ValueOrDefault(Settings) ?? "";
 
         configError = null;
@@ -30,6 +32,7 @@ internal sealed class AiToolsHost
         if (string.IsNullOrWhiteSpace(apiKey)
             && provider != LlmProviderFactory.GitHubCopilot
             && provider != LlmProviderFactory.ClaudeCode
+            && provider != LlmProviderFactory.Codex
             && provider != LlmProviderFactory.OpenCode)
         {
             configError = "No API key configured. Open Plugins > AI Tools to configure.";
@@ -38,7 +41,7 @@ internal sealed class AiToolsHost
 
         try
         {
-            return LlmProviderFactory.Create(provider, apiKey, model);
+            return LlmProviderFactory.Create(provider, apiKey, model, baseUrl);
         }
         catch (InvalidOperationException ex)
         {

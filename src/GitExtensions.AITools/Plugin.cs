@@ -18,7 +18,8 @@ public class AiCommitMessagePlugin : GitPluginBase, IGitPluginForCommit
 {
     private readonly BoolSetting _enabledSetting = new("AI commit message enabled", "Enabled", true);
     private readonly ChoiceSetting _providerSetting = new("AI provider", "Provider", LlmProviderFactory.ProviderNames, LlmProviderFactory.GitHubCopilot);
-    private readonly PasswordSetting _apiKeySetting = new("AI API key", "API Key (optional for GitHub Copilot / Claude Code / OpenCode)", "");
+    private readonly PasswordSetting _apiKeySetting = new("AI API key", "API Key (required for OpenAI-compatible / Anthropic-compatible)", "");
+    private readonly StringSetting _baseUrlSetting = new("AI base URL", "Base URL (blank = provider default; OpenAI/Anthropic-compatible only)", "");
     private readonly StringSetting _modelSetting = new("AI model override", "Model override (blank = provider default)", "");
 
     private readonly List<IAiFeature> _features = [];
@@ -69,11 +70,14 @@ public class AiCommitMessagePlugin : GitPluginBase, IGitPluginForCommit
         TextBox apiKeyTextBox = new() { PasswordChar = '\u25CF' };
         _apiKeySetting.CustomControl = apiKeyTextBox;
 
+        TextBox baseUrlTextBox = new();
+        _baseUrlSetting.CustomControl = baseUrlTextBox;
+
         TextBox modelTextBox = new();
         _modelSetting.CustomControl = modelTextBox;
 
-        providerCombo.SelectedIndexChanged += (_, _) => UpdateSettingsStatus(providerCombo, apiKeyTextBox, statusLabel, modelTextBox);
-        apiKeyTextBox.TextChanged += (_, _) => UpdateSettingsStatus(providerCombo, apiKeyTextBox, statusLabel, modelTextBox);
+        providerCombo.SelectedIndexChanged += (_, _) => UpdateSettingsStatus(providerCombo, apiKeyTextBox, statusLabel, baseUrlTextBox, modelTextBox);
+        apiKeyTextBox.TextChanged += (_, _) => UpdateSettingsStatus(providerCombo, apiKeyTextBox, statusLabel, baseUrlTextBox, modelTextBox);
 
         // LoadSetting populates controls after GetSettings returns —
         // trigger initial status check once the combo becomes visible.
@@ -81,7 +85,7 @@ public class AiCommitMessagePlugin : GitPluginBase, IGitPluginForCommit
         visibleHandler = (_, _) =>
         {
             providerCombo.VisibleChanged -= visibleHandler;
-            UpdateSettingsStatus(providerCombo, apiKeyTextBox, statusLabel, modelTextBox);
+            UpdateSettingsStatus(providerCombo, apiKeyTextBox, statusLabel, baseUrlTextBox, modelTextBox);
         };
         providerCombo.VisibleChanged += visibleHandler;
 
@@ -91,6 +95,7 @@ public class AiCommitMessagePlugin : GitPluginBase, IGitPluginForCommit
             _providerSetting,
             new PseudoSetting(statusLabel, "Status"),
             _apiKeySetting,
+            _baseUrlSetting,
             _modelSetting,
         ];
 
@@ -102,7 +107,7 @@ public class AiCommitMessagePlugin : GitPluginBase, IGitPluginForCommit
         return settings;
     }
 
-    private static void UpdateSettingsStatus(ComboBox providerCombo, TextBox apiKeyTextBox, Label statusLabel, TextBox modelTextBox)
+    private static void UpdateSettingsStatus(ComboBox providerCombo, TextBox apiKeyTextBox, Label statusLabel, TextBox baseUrlTextBox, TextBox modelTextBox)
     {
         string provider = "";
         string apiKey = "";
@@ -138,11 +143,21 @@ public class AiCommitMessagePlugin : GitPluginBase, IGitPluginForCommit
             return;
         }
 
+        baseUrlTextBox.PlaceholderText = provider switch
+        {
+            LlmProviderFactory.OpenAI => "e.g. https://models.github.ai/inference",
+            LlmProviderFactory.Anthropic => "e.g. http://localhost:4000 (LiteLLM proxy)",
+            _ => "",
+        };
+
         modelTextBox.PlaceholderText = provider switch
         {
             LlmProviderFactory.GitHubCopilot => "e.g. claude-haiku-4.5",
             LlmProviderFactory.ClaudeCode => "e.g. sonnet",
-            LlmProviderFactory.OpenCode => "e.g. opencode/big-pickle",
+            LlmProviderFactory.Codex => "e.g. gpt-5-codex",
+            LlmProviderFactory.OpenCode => "e.g. anthropic/claude-sonnet-4-5",
+            LlmProviderFactory.OpenAI => "e.g. openai/gpt-4o-mini",
+            LlmProviderFactory.Anthropic => "e.g. claude-sonnet-4-5",
             _ => "",
         };
 
@@ -210,6 +225,7 @@ public class AiCommitMessagePlugin : GitPluginBase, IGitPluginForCommit
             EnabledSetting = _enabledSetting,
             ProviderSetting = _providerSetting,
             ApiKeySetting = _apiKeySetting,
+            BaseUrlSetting = _baseUrlSetting,
             ModelSetting = _modelSetting,
         };
 

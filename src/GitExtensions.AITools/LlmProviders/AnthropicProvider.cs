@@ -8,17 +8,33 @@ internal sealed class AnthropicProvider : ILlmProvider
 {
     private static readonly HttpClient HttpClient = new() { Timeout = TimeSpan.FromSeconds(30) };
     private const string DefaultModel = "claude-sonnet-4-20250514";
-    private const string ApiUrl = "https://api.anthropic.com/v1/messages";
+    private const string DefaultApiUrl = "https://api.anthropic.com/v1/messages";
+    private const string MessagesPath = "/v1/messages";
 
     private readonly string _apiKey;
     private readonly string _model;
+    private readonly string _apiUrl;
 
-    public string Name => "Anthropic (Claude)";
+    public string Name => "Anthropic-compatible";
 
-    public AnthropicProvider(string apiKey, string? model = null)
+    public AnthropicProvider(string apiKey, string? model = null, string? baseUrl = null)
     {
         _apiKey = apiKey;
         _model = string.IsNullOrWhiteSpace(model) ? DefaultModel : model;
+        _apiUrl = ResolveApiUrl(baseUrl);
+    }
+
+    private static string ResolveApiUrl(string? baseUrl)
+    {
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            return DefaultApiUrl;
+        }
+
+        string trimmed = baseUrl.TrimEnd('/');
+        return trimmed.EndsWith(MessagesPath, StringComparison.OrdinalIgnoreCase)
+            ? trimmed
+            : trimmed + MessagesPath;
     }
 
     public (string message, bool isReady) GetStatus(string apiKey)
@@ -30,7 +46,7 @@ internal sealed class AnthropicProvider : ILlmProvider
 
     public async Task<string> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken)
     {
-        using HttpRequestMessage request = new(HttpMethod.Post, ApiUrl);
+        using HttpRequestMessage request = new(HttpMethod.Post, _apiUrl);
         request.Headers.Add("x-api-key", _apiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
 
@@ -57,7 +73,7 @@ internal sealed class AnthropicProvider : ILlmProvider
         if (!response.IsSuccessStatusCode)
         {
             string truncated = responseBody.Length > 500 ? responseBody[..500] + "…" : responseBody;
-            throw new HttpRequestException($"Anthropic API error ({response.StatusCode}): {truncated}");
+            throw new HttpRequestException($"Anthropic-compatible API error ({response.StatusCode}): {truncated}");
         }
 
         using JsonDocument doc = JsonDocument.Parse(responseBody);
@@ -67,7 +83,7 @@ internal sealed class AnthropicProvider : ILlmProvider
             || content.ValueKind != JsonValueKind.Array
             || content.GetArrayLength() == 0)
         {
-            throw new InvalidOperationException("Anthropic API response missing valid 'content' array.");
+            throw new InvalidOperationException("Anthropic-compatible API response missing valid 'content' array.");
         }
 
         if (content[0].TryGetProperty("text", out JsonElement text))
@@ -75,6 +91,6 @@ internal sealed class AnthropicProvider : ILlmProvider
             return text.GetString() ?? "";
         }
 
-        throw new InvalidOperationException("Anthropic API response missing 'text' in content block.");
+        throw new InvalidOperationException("Anthropic-compatible API response missing 'text' in content block.");
     }
 }

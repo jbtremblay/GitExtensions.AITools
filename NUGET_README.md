@@ -8,11 +8,12 @@ AI-powered commit message generation for [Git Extensions](https://github.com/git
 - **Auto-fill mode** — automatically writes the commit message as you stage/unstage files
 - **Commit template** — also available as a selectable template in the commit dialog dropdown
 - **Multiple LLM providers:**
-  - Github Copilot CLI
+  - GitHub Copilot CLI
   - Claude Code
+  - OpenAI Codex
   - OpenCode
-  - Anthropic (Claude)
-  - OpenAI
+  - Anthropic-compatible API (Claude default; etc.)
+  - OpenAI-compatible API (OpenAI default; GitHub Models, Groq, Gemini, OpenRouter, Ollama, LM Studio, etc.)
 
 ## Installation
 
@@ -31,10 +32,31 @@ Open **Plugins → AI Tools** in Git Extensions to configure:
 | Enabled | Enable/disable the plugin | `true` |
 | Auto-fill on stage/unstage | Automatically fill the commit message box | `true` |
 | Provider | LLM provider to use | GitHub Copilot |
-| API Key | API key (optional for GitHub Copilot / Claude Code / OpenCode) | — |
+| API Key | API key (required for OpenAI-compatible / Anthropic-compatible) | — |
+| Base URL | Endpoint override for the OpenAI-compatible and Anthropic-compatible providers (blank = official API) | — |
 | Model override | Use a specific model instead of the provider default | — |
 | Commit types | Comma-separated list of allowed conventional commit types | `feat, fix, refactor, ...` |
 | Custom instructions | Appended to the built-in prompt | — |
+
+### Connecting to OpenAI-compatible services
+
+The **OpenAI-compatible API** provider can target any service that speaks the OpenAI Chat Completions wire format. Leave **Base URL** blank to hit `api.openai.com`, or fill it in to use an alternative. Click the **Model override** value to see the full catalog of model names the service accepts:
+
+| Service | Base URL | Model override | Sign-up |
+|---|---|---|---|
+| OpenAI | `https://api.openai.com/v1` | [`gpt-4o-mini`](https://platform.openai.com/docs/models) | [platform.openai.com](https://platform.openai.com) |
+| GitHub Models | `https://models.github.ai/inference` | [`openai/gpt-4o-mini`](https://github.com/marketplace?type=models) | [GitHub PAT with `models:read`](https://github.com/settings/tokens?type=beta) |
+| Groq | `https://api.groq.com/openai/v1` | [`llama-3.3-70b-versatile`](https://console.groq.com/docs/models) | [console.groq.com](https://console.groq.com) |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | [`gemini-2.0-flash`](https://ai.google.dev/gemini-api/docs/models) | [aistudio.google.com](https://aistudio.google.com) |
+| OpenRouter | `https://openrouter.ai/api/v1` | [`meta-llama/llama-3.3-70b-instruct:free`](https://openrouter.ai/models) | [openrouter.ai](https://openrouter.ai) |
+| Cerebras | `https://api.cerebras.ai/v1` | [`llama-3.3-70b`](https://inference-docs.cerebras.ai/introduction) | [cloud.cerebras.ai](https://cloud.cerebras.ai) |
+| Mistral | `https://api.mistral.ai/v1` | [`mistral-small-latest`](https://docs.mistral.ai/getting-started/models/models_overview/) | [console.mistral.ai](https://console.mistral.ai) |
+| Ollama (local) | `http://localhost:11434/v1` | [`llama3.3`](https://ollama.com/library) | [ollama.com](https://ollama.com) |
+| LM Studio (local) | `http://localhost:1234/v1` | [`llama-3.3-70b-instruct`](https://lmstudio.ai/models) | [lmstudio.ai](https://lmstudio.ai) |
+
+### Connecting to Anthropic-compatible services
+
+The **Anthropic-compatible API** provider speaks Anthropic's `/v1/messages` wire format. Leave **Base URL** blank for the official Anthropic API with your `sk-ant-…` api key, or set it to any proxy that accepts the api format.
 
 ## How It Works
 
